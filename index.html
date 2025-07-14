@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fruit Sudoku</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(9, 50px); gap: 2px; margin: 20px auto; width: fit-content; }
+    .cell { width: 50px; height: 50px; border: 1px solid #ccc; font-size: 24px; text-align: center; line-height: 50px; }
+    .cell:hover { background: #f0f0f0; cursor: pointer; }
+    .subgrid { border: 2px solid #000; }
+    .fixed { background: #e0e0e0; }
+    .selector { display: none; position: absolute; background: #fff; border: 1px solid #000; padding: 10px; }
+    .selector div { display: inline-block; width: 40px; height: 40px; margin: 5px; font-size: 24px; cursor: pointer; }
+    .selector div:hover { background: #f0f0f0; }
+    button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Fruit Sudoku</h1>
+  <div id="grid" class="grid"></div>
+  <div id="selector" class="selector"></div>
+  <button onclick="newGame()">New Game</button>
+  <button onclick="checkSolution()">Check Solution</button>
+
+  <script>
+    const fruits = ['🍎', '🍐', '🍊', '🍋', '🍉', '🍇', '🍓', '🍑', '🍒'];
+    let board = [];
+    let fixedCells = [];
+
+    function initBoard() {
+      board = Array(9).fill().map(() => Array(9).fill(''));
+      fixedCells = Array(9).fill().map(() => Array(9).fill(false));
+      generatePuzzle();
+      renderBoard();
+    }
+
+    function generatePuzzle() {
+      // Simplified: Fill diagonal 3x3 subgrids for a valid base
+      for (let g = 0; g < 9; g += 3) {
+        let shuffled = [...fruits].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            board[g + i][g + j] = shuffled[i * 3 + j];
+            fixedCells[g + i][g + j] = true;
+          }
+        }
+      }
+      // Remove some cells to create puzzle (30 cells kept)
+      let cellsToKeep = 30;
+      while (cellsToKeep > 0) {
+        let r = Math.floor(Math.random() * 9);
+        let c = Math.floor(Math.random() * 9);
+        if (!fixedCells[r][c]) {
+          fixedCells[r][c] = true;
+          cellsToKeep--;
+        }
+      }
+    }
+
+    function renderBoard() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          if ((i % 3 === 0 && j % 3 === 0) || (i % 3 === 0 && j % 3 === 2) || 
+              (i % 3 === 2 && j % 3 === 0) || (i % 3 === 2 && j % 3 === 2)) {
+            cell.classList.add('subgrid');
+          }
+          if (fixedCells[i][j]) cell.classList.add('fixed');
+          cell.textContent = board[i][j];
+          if (!fixedCells[i][j]) {
+            cell.onclick = () => showSelector(i, j, cell);
+          }
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function showSelector(row, col, cell) {
+      const selector = document.getElementById('selector');
+      selector.innerHTML = '';
+      selector.style.display = 'block';
+      const rect = cell.getBoundingClientRect();
+      selector.style.left = `${rect.left}px`;
+      selector.style.top = `${rect.bottom}px`;
+      fruits.forEach(fruit => {
+        const div = document.createElement('div');
+        div.textContent = fruit;
+        div.onclick = () => {
+          board[row][col] = fruit;
+          cell.textContent = fruit;
+          selector.style.display = 'none';
+        };
+        selector.appendChild(div);
+      });
+      // Clear option
+      const clear = document.createElement('div');
+      clear.textContent = 'X';
+      clear.onclick = () => {
+        board[row][col] = '';
+        cell.textContent = '';
+        selector.style.display = 'none';
+      };
+      selector.appendChild(clear);
+    }
+
+    function isValid(board, row, col, fruit) {
+      // Check row
+      for (let j = 0; j < 9; j++) {
+        if (j !== col && board[row][j] === fruit) return false;
+      }
+      // Check column
+      for (let i = 0; i < 9; i++) {
+        if (i !== row && board[i][col] === fruit) return false;
+      }
+      // Check 3x3 subgrid
+      const startRow = Math.floor(row / 3) * 3;
+      const startCol = Math.floor(col / 3) * 3;
+      for (let i = startRow; i < startRow + 3; i++) {
+        for (let j = startCol; j < startCol + 3; j++) {
+          if (i !== row && j !== col && board[i][j] === fruit) return false;
+        }
+      }
+      return true;
+    }
+
+    function checkSolution() {
+      let valid = true;
+      for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+          if (board[i][j] && !isValid(board, i, j, board[i][j])) {
+            valid = false;
+            break;
+          }
+        }
+        if (!valid) break;
+      }
+      alert(valid ? 'Solution is valid!' : 'Solution is invalid.');
+    }
+
+    function newGame() {
+      initBoard();
+    }
+
+    // Initialize game
+    initBoard();
+  </script>
+</body>
+</html>
